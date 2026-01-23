@@ -1,0 +1,4 @@
+venv
+lms
+__pycache__/
+.env
