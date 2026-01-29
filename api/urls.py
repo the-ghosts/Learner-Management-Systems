@@ -23,4 +23,6 @@ urlpatterns = [
     path("order/checkout/<order_id>/", api_views.CheckoutAPIView.as_view()),
     path("order/coupon/", api_views.CouponApplyAPIView.as_view()),
     path("payment/stripe-checkout/<order_oid>/", api_views.StripeCheckoutAPIView.as_view()),
+    path("payment/payment-success/", api_views.PaymentSuccessAPIViews.as_view()),
+    path("course/search/", api_views.SearchCourseAPIViews.as_view()),
 ]

@@ -54,6 +54,7 @@ NOTIFICATION_TYPE= (
     ("New Course Question", "New Course Question"),
     ("Draft", "Draft"),
     ("Course Published", "Course Published"),
+    ("Course Enrollment Completed", "Course Enrollment Completed"),
 )
 
 

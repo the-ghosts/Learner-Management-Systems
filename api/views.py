@@ -21,6 +21,8 @@ import stripe
 import requests
 
 stripe.api_key= settings.STRIPE_SECRET_KEY
+PAYPAL_CLIENT_ID= settings.PAYPAL_CLIENT_ID
+PAYPAL_SECRET_ID= settings.PAYPAL_SECRET_ID
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = api_serializer.MyTokenObtainPairSerializer
@@ -385,6 +387,95 @@ def get_access_token(client_id, secret_key):
         return response.json()['access_token']
     else:
         raise Exception(f"Failed to get access token from paypal {response.status_code}")
+
+
+class PaymentSuccessAPIViews(generics.CreateAPIView):
+    serializer_class= api_serializer.CartOrderSerializer
+    queryset= api_models.CartOrder.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        order_oid= request.data['order_oid']
+        session_id= request.data['session_id']
+        paypal_order_id= request.data['paypal_order_id']
+
+        order= api_models.CartOrder.objects.get(order_id= order_oid)
+        order_items= api_models.CartOrderItem.objects.get(order=order)
+
+        #Paypal payment success
+        if paypal_order_id != "null":
+            paypal_api_url= f"https://api-m.sandbox.paypal.com/v2/checkout/orders/{paypal_order_id}"
+            headers= {
+                'Content-Type':'application/json',
+                'Authorization': f"Bearer {get_access_token(PAYPAL_CLIENT_ID, PAYPAL_SECRET_ID)}" 
+            }
+            response= request.get(paypal_api_url, headers= headers)
+            if response.status_code == 200:
+                paypal_order_data= response.json()
+                paypal_payment_status= paypal_order_data['status']
+                if paypal_payment_status == "COMPLETED":
+                    if order.payment_status == "Processing":
+                        order.payment_status = "Paid"
+                        order.save()
+                        api_models.Notification.objects.create(user= order.student, order= order, type= "Course Enrollment Completed")
+                        for i in order_items:
+                            api_models.Notification.objects.create(
+                                teacher= i.teacher,
+                                order= order,
+                                order_items= i,
+                                type= "New Order",
+
+                            )
+                            api_models.EnrolledCourse.objects.create(
+                                course= i.course,
+                                teacher= i.teacher,
+                                user= i.student,
+                                order_items= i,
+                            )
+
+                        return Response({"message": "Payment Successful"})
+                    else: 
+                        return Response({"message": "Payment has been made already"})
+                else:
+                    return Response({"message": "Payment Failed"})
+            else:
+                return Response({"message": "PayPal Error Occured"})
+            
+        #Stripe Payment Success
+        if session_id != "null":
+            session= stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status == "paid":
+                if order.payment_status == "Processing":
+                        order.payment_status = "Paid"
+                        order.save()
+                        api_models.Notification.objects.create(user= order.student, order= order, type= "Course Enrollment Completed")
+                        for i in order_items:
+                            api_models.Notification.objects.create(
+                                teacher= i.teacher,
+                                order= order,
+                                order_items= i,
+                                type= "New Order",
+
+                            )
+                            api_models.EnrolledCourse.objects.create(
+                                course= i.course,
+                                teacher= i.teacher,
+                                user= i.student,
+                                order_items= i,
+                            )
+
+                        return Response({"message": "Payment Successful"})
+                else:
+                    return Response({"message": "Payment has been made already"})
+            else:
+                return Response({"message": "Payment Failed"})
+
+class SearchCourseAPIViews(generics.ListAPIView):
+    serializer_class= api_serializer.CourseSerializer
+    permission_classes= [AllowAny]
+
+    def get_queryset(self):
+        query= self.request.GET.get('query')
+        return api_models.Course.objects.filter(title__icontains= query)
 
 
 
