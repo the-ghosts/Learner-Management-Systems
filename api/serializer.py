@@ -90,7 +90,7 @@ class VariantItemSerializer(serializers.ModelSerializer):
         model= api_models.VariantItem
 
 class VariantSerializer(serializers.ModelSerializer):
-    variant_items= VariantItemSerializer()
+    variant_items= VariantItemSerializer(many=True)
     class Meta:
         fields= '__all__'
         model= api_models.Variant
@@ -182,13 +182,31 @@ class EnrolledCourseSerializer(serializers.ModelSerializer):
     class Meta:
         fields= '__all__'
         model= api_models.EnrolledCourse
+    
+    def __init__(self, *args, **kwargs):
+        super(EnrolledCourseSerializer, self).__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.method == 'POST':
+            self.Meta.depth = 0
+        else:
+            self.Meta.depth = 3
 
 class CourseSerializer(serializers.ModelSerializer):
     student= EnrolledCourseSerializer(many=True)
     curriculum= VariantSerializer(many=True)
     lectures= VariantItemSerializer(many=True)
+    reviews= ReviewSerializer(many=True)
 
     class Meta:
-        fields=[ "category", "teacher", "file", "image", "title", "description", "price", "language", "level", "teacher_course_status", "platform_status", "featured", "course_id", "slug", "date", "student", "curriculum", "lectures", "average_rating", "rating_count", "reviews",
+        fields=["id", "category", "teacher", "file", "image", "title", "description", "price", "language", "level", "teacher_course_status", "platform_status", "featured", "course_id", "slug", "date", "student", "curriculum", "lectures", "average_rating", "rating_count", "reviews",
         ]
         model= api_models.Course
+
+    def __init__(self, *args, **kwargs):
+        super(CourseSerializer, self).__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.method == 'POST':
+            self.Meta.depth = 0
+        else:
+            self.Meta.depth = 3
+            

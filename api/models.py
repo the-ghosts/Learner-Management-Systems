@@ -133,7 +133,7 @@ class Course(models.Model):
         return EnrolledCourse.objects.filter(course=self)
     
     def curriculum(self):
-        return VariantItem.objects.filter(variant__course=self)
+        return Variant.objects.filter(course=self)
     
     def lectures(self):
         return VariantItem.objects.filter(variant__course=self)
@@ -166,7 +166,7 @@ class VariantItem(models.Model):
     variant= models.ForeignKey(Variant, on_delete=models.CASCADE, related_name="variant_items")
     title= models.CharField(max_length=500)
     description = models.TextField(blank=True, null=True)
-    file= models.FileField(upload_to= "course-file")
+    file= models.FileField(upload_to= "course-file", null=True, blank=True)
     duration= models.DurationField(null=True, blank=True)
     content_duration= models.CharField(max_length=500, null=True, blank=True)
     preview= models.BooleanField(default=False)
@@ -373,7 +373,7 @@ class Review(models.Model):
         return self.course.title
     
     def profile(self):
-        return Profile.objects.filter.get(user=self.user)
+        return Profile.objects.get(user=self.user)
 
 
 class Notification(models.Model):
